@@ -1,0 +1,1 @@
+Quelle: https://github.com/cloudflare/security-audit-skill, Commit c1c8a8c, kopiert am 2026-10-31 (MIT-Lizenz, siehe LICENSE). Update: git clone --depth 1 und *.md, *.json, validate-*.cjs neu kopieren.

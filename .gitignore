@@ -1,0 +1,5 @@
+# eigene Host-Listen nie committen
+server-security/tools/hosts.txt
+server-security/tools/hosts-root.txt
+.DS_Store
+forensik/

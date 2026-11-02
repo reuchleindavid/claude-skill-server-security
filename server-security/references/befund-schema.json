@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "server-security findings",
+  "description": "Vereinfachte Fassung von cloudflare-security-audit/report-schema.json fuer Host-Audits. Drei Verdict-Branches mit disjunkten Pflichtfeldern. Pruefung: scripts/validate_findings.py (stdlib, kein jsonschema noetig).",
+  "type": "array",
+  "items": { "$ref": "#/$defs/record" },
+  "$defs": {
+    "common_required": ["fingerprint", "verdict", "title", "description", "host", "check_class", "evidence"],
+    "evidence_item": {
+      "type": "object",
+      "required": ["source", "quote"],
+      "properties": {
+        "source": { "type": "string", "description": "Befehl, absoluter Pfad mit mtime, oder Logdatei mit Zeitstempel" },
+        "quote": { "type": "string", "description": "woertlich zitierte Zeile, Secrets maskiert" }
+      },
+      "additionalProperties": false
+    },
+    "record": {
+      "type": "object",
+      "properties": {
+        "fingerprint": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._:-]{2,120}$", "description": "<host>:<klasse>:<kurz>, stabil ueber Laeufe" },
+        "verdict": { "enum": ["confirmed", "needs_validation", "rejected"] },
+        "title": { "type": "string", "minLength": 5 },
+        "description": { "type": "string", "minLength": 20 },
+        "host": { "type": "string" },
+        "check_class": { "type": "string", "pattern": "^check-klassen\\.md#.+" },
+        "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence_item" } },
+        "principal": { "type": "string", "description": "A1..A5 plus Klartext" },
+        "entry": { "type": "string" },
+        "missing_control": { "type": "string" },
+        "resource": { "type": "string" },
+        "observed_result": { "type": "string" },
+        "conditions": { "type": "array", "items": { "type": "string" } },
+        "remediation": {
+          "type": "object",
+          "required": ["smallest_fix", "owner"],
+          "properties": {
+            "smallest_fix": { "type": "string" },
+            "owner": { "enum": ["Betreiber", "Mitbetreuer", "Hoster", "Kunde", "Agentur"] },
+            "regression_check": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "severity": {
+          "type": "object",
+          "required": ["likelihood", "impact", "overall"],
+          "properties": {
+            "likelihood": { "enum": ["low", "medium", "high"] },
+            "impact": { "enum": ["informational", "low", "medium", "high", "critical"] },
+            "overall": { "enum": ["informational", "low", "medium", "high", "critical"] }
+          },
+          "additionalProperties": false
+        },
+        "confidence": { "enum": ["medium", "high"] },
+        "claimed_root_cause": { "type": "string" },
+        "blockers": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "validation_plan": {
+          "type": "object",
+          "properties": {
+            "readonly": { "type": "string", "description": "weiterer lesender Befehl, der den Fakt klaert" },
+            "operator": { "type": "string", "description": "was Hoster/Kunde/Betreiber im Panel nachsehen soll, ohne Angriff" }
+          },
+          "additionalProperties": false
+        },
+        "reason": { "type": "string", "minLength": 10 }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "verdict": { "const": "confirmed" } } },
+          "then": {
+            "required": ["principal", "entry", "missing_control", "resource", "observed_result", "remediation", "severity", "confidence"],
+            "not": { "anyOf": [ { "required": ["claimed_root_cause"] }, { "required": ["blockers"] }, { "required": ["validation_plan"] }, { "required": ["reason"] } ] }
+          }
+        },
+        {
+          "if": { "properties": { "verdict": { "const": "needs_validation" } } },
+          "then": {
+            "required": ["claimed_root_cause", "principal", "entry", "resource", "blockers", "validation_plan"],
+            "not": { "anyOf": [ { "required": ["severity"] }, { "required": ["observed_result"] }, { "required": ["remediation"] }, { "required": ["reason"] }, { "required": ["confidence"] } ] }
+          }
+        },
+        {
+          "if": { "properties": { "verdict": { "const": "rejected" } } },
+          "then": {
+            "required": ["claimed_root_cause", "reason"],
+            "not": { "anyOf": [ { "required": ["severity"] }, { "required": ["observed_result"] }, { "required": ["remediation"] }, { "required": ["blockers"] }, { "required": ["validation_plan"] }, { "required": ["confidence"] } ] }
+          }
+        }
+      ]
+    }
+  }
+}
